@@ -3,6 +3,8 @@
 # Print a PDF or a selection of pages from one two-sided, 2-up.
 #
 
+set -e
+
 usage() {
     cat <<EOF
 Usage: ${0##*/} [options] file
@@ -34,6 +36,8 @@ shift $((OPTIND-1))
 
 
 
+tmpdir="/tmp"
+
 # stupid hack because I don't know a better way
 if [[ -z $from ]]; then
     from=1
@@ -43,11 +47,17 @@ if [[ -z $to ]]; then
     to=99999
 fi
 
+# form outfile name
+outfile="$tmpdir/$(date +%s)-${0##*/}-$1"
+
 # select & print pages
 gs -q -sDEVICE=pdfwrite -dNOPAUSE -dBATCH -dSAFER \
-   -sstdout=/dev/null \
    -dFirstPage=$from \
    -dLastPage=$to \
-   -sOutputFile=- \
-   "$1" 2>/dev/null | \
-       lp -o number-up=2 -o sides=two-sided-long-edge -
+   -sOutputFile="$outfile" \
+   "$1" 2>/dev/null
+
+lp -o number-up=2 -o sides=two-sided-long-edge "$outfile"
+
+# fix error where last page is not printed
+lp <<< "FIX"
